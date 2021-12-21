@@ -11,6 +11,7 @@
   "author": "Neil Smith",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.1",
     "express": "^4.17.2",
     "express-graphql": "^0.12.0",

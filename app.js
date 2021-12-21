@@ -5,12 +5,15 @@ const { buildSchema } = require('graphql');
 const mongoose = require('mongoose');
 
 const Event = require('./models/event');
+const User = require('./models/user');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
 app.use(bodyParser.json());
 
 // ! means required, cannot return a null value. A list of null values or just a null response
+// Don't want to be able to get the password for a User so we don't put required!
 
 app.use('/graphql', graphqlHTTP({
     schema: buildSchema(`
@@ -22,11 +25,22 @@ app.use('/graphql', graphqlHTTP({
             date: String!
         }
 
+        type User {
+            _id: ID!
+            email: String!
+            password: String
+        }
+
         input EventInput {
             title: String!
             description: String!
             price: Float!
             date: String!
+        }
+
+        input UserInput {
+            email: String!
+            password: String!
         }
 
         type RootQuery {
@@ -35,6 +49,7 @@ app.use('/graphql', graphqlHTTP({
 
         type RootMutation {
             createEvent(eventInput: EventInput): Event
+            createUser(userInput: UserInput): User
         }
 
         schema {
@@ -72,6 +87,31 @@ app.use('/graphql', graphqlHTTP({
                 .catch(err => {
                     console.error(err);
                     throw err;
+                });
+        },
+        createUser: args => {
+            // Check a user with this email doesn't already exist
+            return User.findOne({ email: args.userInput.email })
+                .then(user => {
+                    if (user) {
+                        throw new Error('User already exists.')
+                    }
+                    // Create a new user but encrypt the password
+                    return bcrypt.hash(args.userInput.password, 12)
+                })
+                .then(hashedPassword => {
+                    const user = new User({
+                        email: args.userInput.email,
+                        password: hashedPassword
+                    });
+                    return user.save();
+                })
+                // When returning the user, return a null password
+                .then(result => {
+                    return { ...result._doc, password: null }
+                })
+                .catch(err => {
+                    throw err
                 });
         }
     },
