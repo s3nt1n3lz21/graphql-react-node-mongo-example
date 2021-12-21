@@ -44,7 +44,16 @@ app.use('/graphql', graphqlHTTP({
     `),
     rootValue: {
         events: () => {
-            return events;
+            return Event.find()
+            .then(events => {
+                return events.map(event => { 
+                    // Return the events without all the metadata
+                    return { ...event._doc } 
+                })
+            })
+            .catch(err => {
+                throw err
+            })
         },
         createEvent: (args) => {
             const event = new Event({
@@ -57,6 +66,7 @@ app.use('/graphql', graphqlHTTP({
             return event.save()
                 .then(result => {
                     console.log(result);
+                    // Return the result without the metadata
                     return { ...result._doc };
                 })
                 .catch(err => {
