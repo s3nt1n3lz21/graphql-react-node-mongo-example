@@ -94,28 +94,32 @@ module.exports = {
         });
         let createdEvent;
         try {
-        // Save the event to MongoDB
-        const result = await event.save()
-                createdEvent = { 
-                    ...result._doc, 
-                    date: new Date(event._doc.date).toISOString(),
-                    creator: user.bind(this, result._doc.creator)
-                };
-                // Add the event to the users 
-                const user = await User.findById("61c1e2d68ea87ad214135ae0")
-                if (!user) {
-                    throw new Error("Cannot add an event to a user that doesnt exist!")
-                }
-                // Should be the event id, but its smart enough to grab just the id
-                user.createdEvents.push(event);
-                // Update the user
-                await user.save();
-                // Return the event without the metadata
-                return createdEvent;
-            } catch (err) {
-                console.error(err);
-                throw err;
+            // Save the event to MongoDB
+            const result = await event.save()
+            createdEvent = { 
+                ...result._doc, 
+                date: new Date(event._doc.date).toISOString(),
+                creator: user.bind(this, result._doc.creator)
+            };
+
+            // Add the event to the users 
+            const creator = await User.findById("61c1e2d68ea87ad214135ae0")
+            if (!creator) {
+                throw new Error("Cannot add an event to a user that doesnt exist!")
             }
+
+            // Should be the event id, but its smart enough to grab just the id
+            creator.createdEvents.push(event);
+
+            // Update the user
+            await creator.save();
+
+            // Return the event without the metadata
+            return createdEvent;
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
     },
     createUser: async args => {
         try {
