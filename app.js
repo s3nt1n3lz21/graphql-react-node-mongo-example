@@ -75,14 +75,29 @@ app.use('/graphql', graphqlHTTP({
                 title: args.eventInput.title,
                 description: args.eventInput.description,
                 price: +args.eventInput.price,
-                date: new Date(args.eventInput.date)
+                date: new Date(args.eventInput.date),
+                creator: "61c1e2d68ea87ad214135ae0"
             });
-            // Save to MongoDB
+            let createdEvent;
+            // Save the event to MongoDB
             return event.save()
                 .then(result => {
-                    console.log(result);
-                    // Return the result without the metadata
-                    return { ...result._doc };
+                    createdEvent = { ...result._doc };
+                    // Add the event to the users 
+                    return User.findById("61c1e2d68ea87ad214135ae0")
+                })
+                .then(user => {
+                    if (!user) {
+                        throw new Error("Cannot add an event to a user that doesnt exist!")
+                    }
+                    // Should be the event id, but its smart enough to grab just the id
+                    user.createdEvents.push(event);
+                    // Update the user
+                    return user.save();
+                })
+                .then(result => {
+                    // Return the event without the metadata
+                    return createdEvent;
                 })
                 .catch(err => {
                     console.error(err);
