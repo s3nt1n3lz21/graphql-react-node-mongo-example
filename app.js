@@ -12,6 +12,40 @@ const app = express();
 
 app.use(bodyParser.json());
 
+// When we save data to the database we save the Ids other referenced objects,
+// but when we query for data using GraphQL we use the below functions to find and
+// return the whole object not just the id.
+
+// Find a User object by userId
+const user = userId => {
+    return User.findById(userId)
+        .then(user => {
+            return { 
+                ...user._doc,
+                createdEvents: events.bind(this, user._doc.createdEvents)
+            }
+        })
+        .catch(err => {
+            throw err
+        })
+}
+
+// Find all the Event objects in a list of eventIds and return the whole User object for the creator
+const events = eventIds => {
+    return Event.find({ _id: {$in: eventIds}})
+        .then(events => {
+            return events.map(event => {
+                return { 
+                    ...event._doc, 
+                    creator: user.bind(this, event.creator)
+                }
+            })
+        })
+        .catch(err => {
+            throw err;
+        })
+}
+
 // ! means required, cannot return a null value. A list of null values or just a null response
 // Don't want to be able to get the password for a User so we don't put required!
 
@@ -23,12 +57,14 @@ app.use('/graphql', graphqlHTTP({
             description: String!
             price: Float!
             date: String!
+            creator: User!
         }
 
         type User {
             _id: ID!
             email: String!
             password: String
+            createdEvents: [Event!]
         }
 
         input EventInput {
@@ -59,11 +95,15 @@ app.use('/graphql', graphqlHTTP({
     `),
     rootValue: {
         events: () => {
+            // Find the Event objects and return the whole User Object
             return Event.find()
             .then(events => {
                 return events.map(event => { 
                     // Return the events without all the metadata
-                    return { ...event._doc } 
+                    return { 
+                        ...event._doc,
+                        creator: user.bind(this, event._doc.creator)
+                    } 
                 })
             })
             .catch(err => {
@@ -82,7 +122,10 @@ app.use('/graphql', graphqlHTTP({
             // Save the event to MongoDB
             return event.save()
                 .then(result => {
-                    createdEvent = { ...result._doc };
+                    createdEvent = { 
+                        ...result._doc, 
+                        creator: user.bind(this, result._doc.creator)
+                    };
                     // Add the event to the users 
                     return User.findById("61c1e2d68ea87ad214135ae0")
                 })
