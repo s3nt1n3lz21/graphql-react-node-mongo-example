@@ -26,7 +26,8 @@ const events = eventIds => {
         .then(events => {
             return events.map(event => {
                 return { 
-                    ...event._doc, 
+                    ...event._doc,
+                    date: new Date(event._doc.date).toISOString(),
                     creator: user.bind(this, event.creator)
                 }
             })
@@ -43,8 +44,10 @@ module.exports = {
         .then(events => {
             return events.map(event => { 
                 // Return the events without all the metadata
+                // Make sure date is returned as an ISOString
                 return { 
                     ...event._doc,
+                    date: new Date(event._doc.date).toISOString(),
                     creator: user.bind(this, event._doc.creator)
                 } 
             })
@@ -67,6 +70,7 @@ module.exports = {
             .then(result => {
                 createdEvent = { 
                     ...result._doc, 
+                    date: new Date(event._doc.date).toISOString(),
                     creator: user.bind(this, result._doc.creator)
                 };
                 // Add the event to the users 
