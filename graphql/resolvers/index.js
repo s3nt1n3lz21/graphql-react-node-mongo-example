@@ -1,6 +1,8 @@
+const bcrypt = require('bcryptjs');
+
 const Event = require('../../models/event');
 const User = require('../../models/user');
-const bcrypt = require('bcryptjs');
+const Booking = require('../../models/booking');
 
 // When we save data to the database we save the Ids other referenced objects,
 // but when we query for data using GraphQL we use the below functions to find and
@@ -19,6 +21,8 @@ const bcrypt = require('bcryptjs');
 //             throw err
 //         })
 // }
+
+// 8# - 12:00
 
 // Using async/await
 const user = async userId => {
@@ -84,6 +88,21 @@ module.exports = {
             throw err;
         }
     },
+    bookings: async () => {
+        try {
+            const bookings = await Booking.find();
+            return bookings.map(booking => {
+                return { 
+                    ...booking._doc, 
+                    _id: booking.id, 
+                    createdAt: new Date(booking._doc.createdAt).toISOString(),
+                    updatedAt: new Date(booking._doc.updatedAt).toISOString()
+                };
+            })
+        } catch (err) {
+            throw err;
+        }
+    },
     createEvent: async (args) => {
         const event = new Event({
             title: args.eventInput.title,
@@ -143,5 +162,19 @@ module.exports = {
             } catch (err) {
                 throw err
             }
+    },
+    bookEvent: async args => {
+        const fetchedEvent = await Event.findOne({_id: args.eventId})
+        const booking = new Booking({
+            user: "61c1e2d68ea87ad214135ae0",
+            event: fetchedEvent
+        });
+        const result = await booking.save();
+        return { 
+            ...result._doc,
+            _id: result.id,
+            createdAt: new Date(result._doc.createdAt).toISOString(),
+            updatedAt: new Date(result._doc.updatedAt).toISOString()
+        }
     }
 }
